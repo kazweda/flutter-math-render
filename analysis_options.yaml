@@ -1,0 +1,61 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+  language:
+    strict-casts: true      # 暗黙的な型変換（ダウンキャスト）を禁止
+    strict-inference: true  # 型推論が曖昧な場合に警告
+    strict-raw-types: true  # List などのジェネリクスに型指定を強制
+
+linter:
+  # The lint rules applied to this project can be customized in the
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+  # included above or to enable additional rules. A list of all available lints
+  # and their documentation is published at https://dart.dev/lints.
+  #
+  # Instead of disabling a lint rule for the entire project in the
+  # section below, it can also be suppressed for a single line of code
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
+  # producing the lint.
+  rules:
+    # 1. 網羅性のチェック
+    exhaustive_cases: true  # switch文でenumの全ケースを網羅しているか
+
+    # 2. バグの種を摘み取るルール
+    unawaited_futures: true             # Future（非同期処理）の待ち忘れを指摘
+    control_flow_in_finally: true       # finallyブロック内での不適切な制御を防止
+    empty_statements: true              # 意味のないセミコロンなどを指摘
+
+    # 3. モダンなDartの書き方を強制（AIの古い書き方を修正）
+    prefer_const_constructors: true     # 可能な限り const を使わせる
+    prefer_final_fields: true           # 再代入しない変数を final にさせる
+    use_super_parameters: true          # Dart 3らしい簡潔なコンストラクタを強制
+
+    # 4. 可読性と保守性
+    camel_case_types: true              # クラス名はキャメルケース
+    always_declare_return_types: true   # 戻り値の型を省略させない
+
+    # 5. Widget ツリーのネスト抑制・リファクタリング促進 (#271)
+    prefer_const_constructors_in_immutables: true  # immutable Widget で const を強制（再描画最適化）
+    use_decorated_box: true            # 装飾（decoration）のみが必要な場合は Container ではなく DecoratedBox を使う
+    sized_box_for_whitespace: true     # 余白に Container でなく SizedBox を使う
+
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options
