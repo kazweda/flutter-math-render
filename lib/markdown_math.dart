@@ -99,6 +99,11 @@ class InlineMathBuilder extends MarkdownElementBuilder {
 
 /// Renders [blockMathTag] as a horizontally scrollable display equation.
 class BlockMathBuilder extends MarkdownElementBuilder {
+  BlockMathBuilder({this.selectable = false});
+
+  /// Uses [SelectableMath], which copies the selected part as TeX.
+  final bool selectable;
+
   @override
   bool isBlockElement() => true;
 
@@ -114,13 +119,21 @@ class BlockMathBuilder extends MarkdownElementBuilder {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Math.tex(
-          tex,
-          mathStyle: MathStyle.display,
-          textStyle: parentStyle,
-          onErrorFallback: (FlutterMathException e) =>
-              _MathSource('\$\$$tex\$\$', style: parentStyle),
-        ),
+        child: selectable
+            ? SelectableMath.tex(
+                tex,
+                mathStyle: MathStyle.display,
+                textStyle: parentStyle,
+                onErrorFallback: (FlutterMathException e) =>
+                    _MathSource('\$\$$tex\$\$', style: parentStyle),
+              )
+            : Math.tex(
+                tex,
+                mathStyle: MathStyle.display,
+                textStyle: parentStyle,
+                onErrorFallback: (FlutterMathException e) =>
+                    _MathSource('\$\$$tex\$\$', style: parentStyle),
+              ),
       ),
     );
   }
@@ -168,7 +181,7 @@ class MarkdownMathBody extends StatelessWidget {
       inlineSyntaxes: <md.InlineSyntax>[InlineMathSyntax()],
       builders: <String, MarkdownElementBuilder>{
         inlineMathTag: InlineMathBuilder(),
-        blockMathTag: BlockMathBuilder(),
+        blockMathTag: BlockMathBuilder(selectable: selectable),
       },
     );
   }

@@ -101,8 +101,14 @@ void main() {
           ),
         );
         expect(tester.takeException(), isNull);
-        // 4 valid formulas plus 1 invalid one shown as source.
-        expect(find.byType(Math), findsNWidgets(5));
+        // 3 inline formulas, 1 invalid one shown as source, and the block
+        // formula when it is not selectable.
+        expect(find.byType(Math), findsNWidgets(selectable ? 4 : 5));
+        // The block formula is selectable only when the body is selectable.
+        expect(
+          find.byType(SelectableMath),
+          selectable ? findsOneWidget : findsNothing,
+        );
         expect(
           find.textContaining(r'$\frac{1}{$', findRichText: true),
           findsOneWidget,
