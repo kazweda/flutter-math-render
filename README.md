@@ -15,7 +15,9 @@ flutter analyze
 flutter test
 ```
 
-Golden images (`test/goldens/`) are rendered with the real KaTeX fonts (loaded in `test/flutter_test_config.dart`). They are generated on macOS and only comparable on the same host platform. After an intentional rendering change:
+CI (`.github/workflows/ci.yml`) runs the same checks on Ubuntu for every pull request, excluding golden tests (`--exclude-tags golden`). `main` is protected: changes go through a pull request with CI passing.
+
+Golden images (`test/goldens/`) are rendered with the real KaTeX fonts (loaded in `test/flutter_test_config.dart`). They are generated on macOS and only comparable on the same host platform, so run them locally (`flutter test --tags golden`). After an intentional rendering change:
 
 ```bash
 flutter test --update-goldens test/golden_test.dart
