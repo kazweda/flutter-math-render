@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -132,54 +133,69 @@ void main() {
       expect(tester.testTextInput.hasAnyClients, isFalse);
     }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-    testWidgets('toolbar actions of a selectable block formula', (
-      WidgetTester tester,
-    ) async {
-      String? clipboard;
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (MethodCall call) async {
-          if (call.method == 'Clipboard.setData') {
-            clipboard =
-                (call.arguments as Map<Object?, Object?>)['text'] as String?;
-          }
-          return null;
-        },
-      );
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    testWidgets(
+      'toolbar actions of a selectable block formula',
+      (WidgetTester tester) async {
+        String? clipboard;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
           SystemChannels.platform,
-          null,
-        ),
-      );
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: MarkdownMathBody(
-              data: r'$$\frac{a}{b} + c$$',
-              selectable: true,
+          (MethodCall call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboard =
+                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: MarkdownMathBody(
+                data: r'$$\frac{a}{b} + c$$',
+                selectable: true,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Copy puts the selected part on the clipboard as TeX.
-      await tester.longPress(find.byType(SelectableMath));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Copy'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(clipboard, isNotEmpty);
+        final bool isCupertino = defaultTargetPlatform == TargetPlatform.iOS;
+        final String selectAll = isCupertino ? 'Select All' : 'Select all';
 
-      // Select all then Copy gives the whole formula.
-      await tester.longPress(find.byType(SelectableMath));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Select all'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      await tester.tap(find.text('Copy'));
-      await tester.pumpAndSettle();
-      expect(clipboard, r'\frac{a}{b}+c');
-    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+        Future<void> longPressFormula() async {
+          await tester.longPress(find.byType(SelectableMath));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+
+        // Copy puts the selected part on the clipboard as TeX.
+        await longPressFormula();
+        await tester.tap(find.text('Copy'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(clipboard, isNotEmpty);
+
+        // Select all is offered for a partial selection, and Copy then gives
+        // the whole formula.
+        await longPressFormula();
+        await tester.tap(find.text(selectAll));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        // Everything is selected now, so Select all is no longer offered.
+        expect(find.text(selectAll), findsNothing);
+        await tester.tap(find.text('Copy'));
+        await tester.pumpAndSettle();
+        expect(clipboard, r'\frac{a}{b}+c');
+      },
+      variant: const TargetPlatformVariant(<TargetPlatform>{
+        TargetPlatform.android,
+        TargetPlatform.iOS,
+      }),
+    );
   });
 }
