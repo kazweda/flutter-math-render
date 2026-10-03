@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Flutter version from .fvmrc
+        id: fvm
+        run: echo "flutter=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.flutter }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      # Golden tests are macOS-only; run them locally.
+      - name: Test
+        run: flutter test --exclude-tags golden
