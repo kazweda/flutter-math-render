@@ -1,9 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -138,56 +134,28 @@ class BlockMathBuilder extends MarkdownElementBuilder {
   }
 }
 
-/// A display equation rendered with [SelectableMath] that never opens the
-/// software keyboard.
-class _SelectableBlockMath extends StatefulWidget {
+/// A display equation rendered with [SelectableMath].
+class _SelectableBlockMath extends StatelessWidget {
   const _SelectableBlockMath({required this.tex, this.style});
 
   final String tex;
   final TextStyle? style;
 
   @override
-  State<_SelectableBlockMath> createState() => _SelectableBlockMathState();
-}
-
-class _SelectableBlockMathState extends State<_SelectableBlockMath> {
-  final FocusNode _focusNode = _NoKeyboardFocusNode();
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return SelectableMath.tex(
-      widget.tex,
-      focusNode: _focusNode,
-      textSelectionControls: _mathSelectionControls(Theme.of(context).platform),
+      tex,
+      textSelectionControls: _selectionControls(Theme.of(context).platform),
       mathStyle: MathStyle.display,
-      textStyle: widget.style,
+      textStyle: style,
       onErrorFallback: (FlutterMathException e) =>
-          _MathSource('\$\$${widget.tex}\$\$', style: widget.style),
+          _MathSource('\$\$$tex\$\$', style: style),
     );
   }
 }
 
-/// Keeps [SelectableMath] from opening a text input connection on focus.
-///
-/// flutter_math_fork 0.7.4 opens a read-only text input connection whenever
-/// the widget gains focus with a keyboard token. It exists only to provide
-/// the browser context menu on web, but runs on every platform, so tapping a
-/// formula shows the software keyboard on Android. Selection and its toolbar
-/// do not depend on that connection.
-class _NoKeyboardFocusNode extends FocusNode {
-  @override
-  bool consumeKeyboardToken() => kIsWeb && super.consumeKeyboardToken();
-}
-
-/// The toolbar controls [SelectableMath] would pick for [platform], with
-/// working Copy and Select all.
-TextSelectionControls _mathSelectionControls(TargetPlatform platform) {
+/// The toolbar controls for [platform], or null for SelectableMath's default.
+TextSelectionControls? _selectionControls(TargetPlatform platform) {
   switch (platform) {
     case TargetPlatform.iOS:
     case TargetPlatform.macOS:
@@ -196,48 +164,26 @@ TextSelectionControls _mathSelectionControls(TargetPlatform platform) {
     case TargetPlatform.fuchsia:
     case TargetPlatform.linux:
     case TargetPlatform.windows:
-      return _materialMathSelectionControls;
+      return null;
   }
 }
 
-final TextSelectionControls _materialMathSelectionControls =
-    _MaterialMathSelectionControls();
 final TextSelectionControls _cupertinoMathSelectionControls =
     _CupertinoMathSelectionControls();
 
-class _MaterialMathSelectionControls extends MaterialTextSelectionControls
-    with _MathToolbarActions {}
-
-class _CupertinoMathSelectionControls extends CupertinoTextSelectionControls
-    with _MathToolbarActions {}
-
-/// Implements the toolbar's Copy and Select all for [SelectableMath].
+/// Cupertino controls that offer Select all unless the whole formula is
+/// already selected, as Material does.
 ///
-/// The default handlers call `copySelection` and `selectAll` on the
-/// delegate, which flutter_math_fork 0.7.4 does not implement, so both
-/// buttons throw a [NoSuchMethodError]. The delegate's [textEditingValue]
-/// already holds the selected part encoded as TeX.
-mixin _MathToolbarActions on TextSelectionControls {
+/// Cupertino offers it only for a collapsed selection, which a formula never
+/// has once the toolbar is shown, so iOS would never offer it.
+class _CupertinoMathSelectionControls extends CupertinoTextSelectionControls {
   @override
-  void handleCopy(TextSelectionDelegate delegate) {
+  bool canSelectAll(TextSelectionDelegate delegate) {
     final TextEditingValue value = delegate.textEditingValue;
-    unawaited(
-      Clipboard.setData(
-        ClipboardData(text: value.selection.textInside(value.text)),
-      ),
-    );
-    delegate.hideToolbar();
-  }
-
-  @override
-  void handleSelectAll(TextSelectionDelegate delegate) {
-    final TextEditingValue value = delegate.textEditingValue;
-    // The textEditingValue setter is flutter_math_fork's select-all entry
-    // point. It is not part of TextSelectionDelegate, and the state class
-    // that has it is not exported, hence the dynamic call.
-    (delegate as dynamic).textEditingValue = value.copyWith(
-      selection: TextSelection(baseOffset: 0, extentOffset: value.text.length),
-    );
+    return delegate.selectAllEnabled &&
+        value.text.isNotEmpty &&
+        !(value.selection.start == 0 &&
+            value.selection.end == value.text.length);
   }
 }
 

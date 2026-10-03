@@ -38,6 +38,15 @@ dependencies:
   flutter_markdown_plus: ^1.0.12
   markdown: ^7.3.1
 
+# flutter_math_fork 0.7.4 with SelectableMath runtime fixes (keyboard on
+# focus, toolbar Copy / Select all, bringIntoView). Drop once released
+# upstream (#8).
+dependency_overrides:
+  flutter_math_fork:
+    git:
+      url: https://github.com/kazweda/flutter_math.git
+      ref: 6ec49b723c097e1ea8110b1f3a1107717fb9755f
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
