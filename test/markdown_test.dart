@@ -115,5 +115,20 @@ void main() {
         );
       });
     }
+
+    testWidgets('tapping a selectable block formula does not show the '
+        'keyboard on Android', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: MarkdownMathBody(data: r'$$x^2$$', selectable: true),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(SelectableMath));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.testTextInput.hasAnyClients, isFalse);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   });
 }
