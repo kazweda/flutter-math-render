@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -120,13 +121,7 @@ class BlockMathBuilder extends MarkdownElementBuilder {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: selectable
-            ? SelectableMath.tex(
-                tex,
-                mathStyle: MathStyle.display,
-                textStyle: parentStyle,
-                onErrorFallback: (FlutterMathException e) =>
-                    _MathSource('\$\$$tex\$\$', style: parentStyle),
-              )
+            ? _SelectableBlockMath(tex: tex, style: parentStyle)
             : Math.tex(
                 tex,
                 mathStyle: MathStyle.display,
@@ -137,6 +132,52 @@ class BlockMathBuilder extends MarkdownElementBuilder {
       ),
     );
   }
+}
+
+/// A display equation rendered with [SelectableMath] that never opens the
+/// software keyboard.
+class _SelectableBlockMath extends StatefulWidget {
+  const _SelectableBlockMath({required this.tex, this.style});
+
+  final String tex;
+  final TextStyle? style;
+
+  @override
+  State<_SelectableBlockMath> createState() => _SelectableBlockMathState();
+}
+
+class _SelectableBlockMathState extends State<_SelectableBlockMath> {
+  final FocusNode _focusNode = _NoKeyboardFocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectableMath.tex(
+      widget.tex,
+      focusNode: _focusNode,
+      mathStyle: MathStyle.display,
+      textStyle: widget.style,
+      onErrorFallback: (FlutterMathException e) =>
+          _MathSource('\$\$${widget.tex}\$\$', style: widget.style),
+    );
+  }
+}
+
+/// Keeps [SelectableMath] from opening a text input connection on focus.
+///
+/// flutter_math_fork 0.7.4 opens a read-only text input connection whenever
+/// the widget gains focus with a keyboard token. It exists only to provide
+/// the browser context menu on web, but runs on every platform, so tapping a
+/// formula shows the software keyboard on Android. Selection and its toolbar
+/// do not depend on that connection.
+class _NoKeyboardFocusNode extends FocusNode {
+  @override
+  bool consumeKeyboardToken() => kIsWeb && super.consumeKeyboardToken();
 }
 
 /// Shows the TeX source as-is when it cannot be parsed.
