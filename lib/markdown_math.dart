@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -160,6 +164,7 @@ class _SelectableBlockMathState extends State<_SelectableBlockMath> {
     return SelectableMath.tex(
       widget.tex,
       focusNode: _focusNode,
+      textSelectionControls: _mathSelectionControls(Theme.of(context).platform),
       mathStyle: MathStyle.display,
       textStyle: widget.style,
       onErrorFallback: (FlutterMathException e) =>
@@ -178,6 +183,62 @@ class _SelectableBlockMathState extends State<_SelectableBlockMath> {
 class _NoKeyboardFocusNode extends FocusNode {
   @override
   bool consumeKeyboardToken() => kIsWeb && super.consumeKeyboardToken();
+}
+
+/// The toolbar controls [SelectableMath] would pick for [platform], with
+/// working Copy and Select all.
+TextSelectionControls _mathSelectionControls(TargetPlatform platform) {
+  switch (platform) {
+    case TargetPlatform.iOS:
+    case TargetPlatform.macOS:
+      return _cupertinoMathSelectionControls;
+    case TargetPlatform.android:
+    case TargetPlatform.fuchsia:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
+      return _materialMathSelectionControls;
+  }
+}
+
+final TextSelectionControls _materialMathSelectionControls =
+    _MaterialMathSelectionControls();
+final TextSelectionControls _cupertinoMathSelectionControls =
+    _CupertinoMathSelectionControls();
+
+class _MaterialMathSelectionControls extends MaterialTextSelectionControls
+    with _MathToolbarActions {}
+
+class _CupertinoMathSelectionControls extends CupertinoTextSelectionControls
+    with _MathToolbarActions {}
+
+/// Implements the toolbar's Copy and Select all for [SelectableMath].
+///
+/// The default handlers call `copySelection` and `selectAll` on the
+/// delegate, which flutter_math_fork 0.7.4 does not implement, so both
+/// buttons throw a [NoSuchMethodError]. The delegate's [textEditingValue]
+/// already holds the selected part encoded as TeX.
+mixin _MathToolbarActions on TextSelectionControls {
+  @override
+  void handleCopy(TextSelectionDelegate delegate) {
+    final TextEditingValue value = delegate.textEditingValue;
+    unawaited(
+      Clipboard.setData(
+        ClipboardData(text: value.selection.textInside(value.text)),
+      ),
+    );
+    delegate.hideToolbar();
+  }
+
+  @override
+  void handleSelectAll(TextSelectionDelegate delegate) {
+    final TextEditingValue value = delegate.textEditingValue;
+    // The textEditingValue setter is flutter_math_fork's select-all entry
+    // point. It is not part of TextSelectionDelegate, and the state class
+    // that has it is not exported, hence the dynamic call.
+    (delegate as dynamic).textEditingValue = value.copyWith(
+      selection: TextSelection(baseOffset: 0, extentOffset: value.text.length),
+    );
+  }
 }
 
 /// Shows the TeX source as-is when it cannot be parsed.
