@@ -54,8 +54,11 @@ Flutter 3.29.3（最小限のプロジェクト。ゴールデンは #122 で生
 
 ## 補足
 
-- `flutter analyze` は依存パッケージの中身を検査しないので、壊れた PR でも "No issues found" になる。
-  エラーは `flutter test` やビルドの段階で初めて出る。
+- アプリ側の `flutter analyze` は依存パッケージの中身を検査しないので、壊れた PR を依存に指定しても
+  "No issues found" になる。エラーは `flutter test` やビルドの段階で初めて出る。
+  flutter_math リポジトリ自身で `flutter analyze lib` を実行すれば、#122 でも Flutter 3.47.5 で
+  error が 3 件出る（`non_abstract_class_inherits_abstract_member`、
+  `mixin_application_not_implemented_interface`、`undefined_method`）。
 - `dependency_overrides` で指定したパッケージには SDK 制約が適用されない。下限の効果を
   確かめるときは通常の依存で指定する。
 - 下限を上げて 0.7.5 などを公開すれば、Flutter 3.29 のユーザーには pub が自動で 0.7.3 を選ぶ
