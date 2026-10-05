@@ -197,5 +197,47 @@ void main() {
         TargetPlatform.iOS,
       }),
     );
+    testWidgets('Select All after a double tap on a phone with a notch', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1260, 2736);
+      tester.view.devicePixelRatio = 3;
+      tester.view.padding = const FakeViewPadding(top: 204, bottom: 102);
+      addTearDown(tester.view.reset);
+      // A toolbar button painted outside the area that receives taps
+      // fails the tap instead of silently hitting the widget underneath.
+      WidgetController.hitTestWarningShouldBeFatal = true;
+      addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(title: const Text('lab')),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: const <Widget>[
+                SizedBox(height: 200),
+                MarkdownMathBody(
+                  data: 'before\n\n\$\$\\frac{a}{b} + c\$\$\n\nafter',
+                  selectable: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final Offset formula = tester.getCenter(find.byType(SelectableMath));
+      await tester.tapAt(formula);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(formula);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Select All'));
+      await tester.pumpAndSettle();
+      // The whole formula is selected, so only Copy is left.
+      expect(find.text('Select All'), findsNothing);
+      expect(find.text('Copy'), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   });
 }
