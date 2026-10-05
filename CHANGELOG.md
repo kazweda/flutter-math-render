@@ -4,7 +4,7 @@ All notable changes to this lab are documented here. The format is based on [Kee
 
 This is a verification app, not a published package (`publish_to: 'none'`). Versions mark points worth referring to, for example from upstream comments or the web demo. Pull request numbers refer to this repository unless noted.
 
-## [Unreleased]
+## [0.4.0] - 2026-10-05
 
 ### Added
 - Web platform and a GitHub Pages deployment of the gallery app (`.github/workflows/pages.yml`) (#20).
@@ -47,6 +47,7 @@ This is a verification app, not a published package (`publish_to: 'none'`). Vers
 - Golden tests rendered with the real KaTeX fonts.
 - CI on GitHub Actions: format, analyze and tests on Ubuntu, excluding goldens (#6).
 
+[0.4.0]: https://github.com/kazweda/flutter-math-render/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kazweda/flutter-math-render/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kazweda/flutter-math-render/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kazweda/flutter-math-render/releases/tag/v0.1.0
