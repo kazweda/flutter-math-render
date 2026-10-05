@@ -19,9 +19,9 @@ analyzer:
     - macos/**
     - linux/**
   language:
-    strict-casts: true      # 暗黙的な型変換（ダウンキャスト）を禁止
-    strict-inference: true  # 型推論が曖昧な場合に警告
-    strict-raw-types: true  # List などのジェネリクスに型指定を強制
+    strict-casts: true      # No implicit downcasts
+    strict-inference: true  # Warn when type inference is ambiguous
+    strict-raw-types: true  # Require type arguments on generics such as List
 
 linter:
   # The lint rules applied to this project can be customized in the
@@ -35,27 +35,27 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # 1. 網羅性のチェック
-    exhaustive_cases: true  # switch文でenumの全ケースを網羅しているか
+    # 1. Exhaustiveness
+    exhaustive_cases: true  # Cover every enum value in a switch
 
-    # 2. バグの種を摘み取るルール
-    unawaited_futures: true             # Future（非同期処理）の待ち忘れを指摘
-    control_flow_in_finally: true       # finallyブロック内での不適切な制御を防止
-    empty_statements: true              # 意味のないセミコロンなどを指摘
+    # 2. Catching likely bugs
+    unawaited_futures: true             # Flag Futures that are not awaited
+    control_flow_in_finally: true       # No return/break/continue in finally
+    empty_statements: true              # Flag stray semicolons
 
-    # 3. モダンなDartの書き方を強制（AIの古い書き方を修正）
-    prefer_const_constructors: true     # 可能な限り const を使わせる
-    prefer_final_fields: true           # 再代入しない変数を final にさせる
-    use_super_parameters: true          # Dart 3らしい簡潔なコンストラクタを強制
+    # 3. Modern Dart style
+    prefer_const_constructors: true     # Use const wherever possible
+    prefer_final_fields: true           # Make fields that are never reassigned final
+    use_super_parameters: true          # Use super parameters in constructors
 
-    # 4. 可読性と保守性
-    camel_case_types: true              # クラス名はキャメルケース
-    always_declare_return_types: true   # 戻り値の型を省略させない
+    # 4. Readability and maintainability
+    camel_case_types: true              # UpperCamelCase type names
+    always_declare_return_types: true   # Always declare return types
 
-    # 5. Widget ツリーのネスト抑制・リファクタリング促進 (#271)
-    prefer_const_constructors_in_immutables: true  # immutable Widget で const を強制（再描画最適化）
-    use_decorated_box: true            # 装飾（decoration）のみが必要な場合は Container ではなく DecoratedBox を使う
-    sized_box_for_whitespace: true     # 余白に Container でなく SizedBox を使う
+    # 5. Lighter widget trees
+    prefer_const_constructors_in_immutables: true  # const constructors for immutable widgets
+    use_decorated_box: true            # DecoratedBox instead of a decoration-only Container
+    sized_box_for_whitespace: true     # SizedBox instead of Container for whitespace
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
