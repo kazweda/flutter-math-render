@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -84,17 +86,106 @@ class InlineMathBuilder extends MarkdownElementBuilder {
           WidgetSpan(
             alignment: PlaceholderAlignment.baseline,
             baseline: TextBaseline.alphabetic,
-            child: Math.tex(
-              tex,
-              mathStyle: MathStyle.text,
-              textStyle: parentStyle,
-              onErrorFallback: (FlutterMathException e) =>
-                  _MathSource('\$$tex\$', style: parentStyle),
-            ),
+            child: _InlineMath(tex: tex, style: parentStyle),
           ),
         ],
       ),
     );
+  }
+}
+
+/// An inline formula. Keeps its TeX so that copying the surrounding
+/// selectable text can put the formula back as `$...$`.
+class _InlineMath extends StatelessWidget {
+  const _InlineMath({required this.tex, this.style});
+
+  final String tex;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Math.tex(
+      tex,
+      mathStyle: MathStyle.text,
+      textStyle: style,
+      onErrorFallback: (FlutterMathException e) =>
+          _MathSource('\$$tex\$', style: style),
+    );
+  }
+}
+
+/// Returns the text of [span] inside [selection], with each inline formula
+/// written as `$tex$`.
+///
+/// SelectableText represents a [WidgetSpan] as U+FFFC, so its own Copy puts
+/// that invisible character on the clipboard in place of the formula.
+@visibleForTesting
+String selectedTextWithTex(InlineSpan span, TextSelection selection) {
+  final StringBuffer out = StringBuffer();
+  int offset = 0;
+  span.visitChildren((InlineSpan child) {
+    if (child is TextSpan) {
+      final String text = child.text ?? '';
+      final int start = (selection.start - offset).clamp(0, text.length);
+      final int end = (selection.end - offset).clamp(0, text.length);
+      out.write(text.substring(start, end));
+      offset += text.length;
+    } else if (child is PlaceholderSpan) {
+      if (offset >= selection.start && offset < selection.end) {
+        final Widget? widget = child is WidgetSpan ? child.child : null;
+        out.write(widget is _InlineMath ? '\$${widget.tex}\$' : '\u{FFFC}');
+      }
+      offset += 1;
+    }
+    return true;
+  });
+  return out.toString();
+}
+
+/// The default context menu, with Copy writing inline formulas as TeX.
+Widget _mathContextMenuBuilder(
+  BuildContext context,
+  EditableTextState editableTextState,
+) {
+  return AdaptiveTextSelectionToolbar.buttonItems(
+    anchors: editableTextState.contextMenuAnchors,
+    buttonItems: <ContextMenuButtonItem>[
+      for (final ContextMenuButtonItem item
+          in editableTextState.contextMenuButtonItems)
+        item.type == ContextMenuButtonType.copy
+            ? item.copyWith(onPressed: () => _copyWithTex(editableTextState))
+            : item,
+    ],
+  );
+}
+
+/// [EditableTextState.copySelection] for the toolbar, with inline formulas
+/// copied as TeX.
+void _copyWithTex(EditableTextState state) {
+  final TextEditingValue value = state.textEditingValue;
+  final InlineSpan? span = state.renderEditable.text;
+  if (value.selection.isCollapsed || span == null) return;
+  Clipboard.setData(
+    ClipboardData(text: selectedTextWithTex(span, value.selection)),
+  );
+  state.bringIntoView(value.selection.extent);
+  state.hideToolbar(false);
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.iOS:
+    case TargetPlatform.macOS:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
+      break;
+    case TargetPlatform.android:
+    case TargetPlatform.fuchsia:
+      // Collapse the selection and hide the toolbar and handles.
+      state.userUpdateTextEditingValue(
+        TextEditingValue(
+          text: value.text,
+          selection: TextSelection.collapsed(offset: value.selection.end),
+        ),
+        SelectionChangedCause.toolbar,
+      );
   }
 }
 
@@ -223,6 +314,7 @@ class MarkdownMathBody extends StatelessWidget {
     return MarkdownBody(
       data: data,
       selectable: selectable,
+      contextMenuBuilder: _mathContextMenuBuilder,
       shrinkWrap: true,
       styleSheet: styleSheet,
       blockSyntaxes: const <md.BlockSyntax>[BlockMathSyntax()],
