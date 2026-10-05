@@ -39,7 +39,7 @@ flutter test --update-goldens test/golden_test.dart
 flutter run -d chrome
 ```
 
-On web, keyboard copy (⌘C / Ctrl+C) from the selectable Markdown body still gives U+FFFC for inline formulas; use the toolbar Copy, which writes `$...$`.
+On web, copying inline formulas from the selectable Markdown body doesn't work yet: with a mouse, the browser handles both ⌘C / Ctrl+C and the right-click Copy, so the clipboard gets U+FFFC (shown as a blank) instead of `$...$`. Selecting and copying block formulas works.
 
 ## Switching the flutter_math_fork source
 
