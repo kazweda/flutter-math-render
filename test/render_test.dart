@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   for (final Formula f in <Formula>[...mathFormulas, ...chemistryFormulas]) {
-    testWidgets('${f.label}: ${f.tex}', (WidgetTester tester) async {
+    testWidgets('${f.id}: ${f.tex}', (WidgetTester tester) async {
       Object? parseError;
       await tester.pumpWidget(
         MaterialApp(

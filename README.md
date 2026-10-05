@@ -6,6 +6,11 @@ Verification lab for [flutter_math_fork](https://pub.dev/packages/flutter_math_f
 - Markdown integration (`$...$` inline, `$$...$$` block) on top of flutter_markdown_plus: `lib/markdown_math.dart`
 - Gallery app for visual checks on a device: `lib/main.dart`
   - Open a specific tab on launch: `flutter run --dart-define=TAB=0|1|2`
+  - Start in Japanese: `flutter run --dart-define=LANG=ja`
+
+## Sample content
+
+Sample content comes in English and Japanese, as a real app with math would ship both: formula labels in `lib/formulas.dart` and Markdown samples in `lib/samples.dart`. Switch between them with the EN / JA toggle in the app bar. The Japanese samples check math mixed with CJK text (line height, wrapping, `$` detection next to Japanese characters), and the formula set follows the Japanese high-school curriculum.
 
 ## Checks
 

@@ -1,71 +1,71 @@
-# #111 / #112 / #122: RenderObjectWithLayoutCallbackMixin の削除
+# #111 / #112 / #122: removing RenderObjectWithLayoutCallbackMixin
 
-検証日: 2026-10-04 / 対象: simpleclub/flutter_math main (`75a6f61`)
+Verified: 2026-10-04 / Target: simpleclub/flutter_math main (`75a6f61`)
 
-## 結論
+## Conclusion
 
-- 3つの PR はどれも「Flutter 3.29 以前で 0.7.4 をビルドするため」に #108 を戻す変更で、
-  **Flutter 3.32 以降ではコンパイルできない**。マージすべきではない。
-- 根本原因は `pubspec.yaml` の `flutter: '>=3.0.0'`。0.7.4 は Flutter 3.32 の API を使うので、
-  下限を `'>=3.32.0'` に上げるのが正しい修正（PR #133）。ただし公開済みの 0.7.4 は直せないので、
-  Flutter 3.32 未満のユーザーは `flutter_math_fork: 0.7.3` に固定する必要がある。
+- All three PRs revert #108 so that 0.7.4 builds on Flutter 3.29 and earlier, and
+  **none of them compile on Flutter 3.32 or later**. They should not be merged.
+- The root cause is `flutter: '>=3.0.0'` in `pubspec.yaml`. 0.7.4 uses Flutter 3.32 APIs, so the
+  right fix is to raise the lower bound to `'>=3.32.0'` (PR #133). The published 0.7.4 can't be
+  fixed, though, so users on Flutter below 3.32 need to pin `flutter_math_fork: 0.7.3`.
 
-## 経緯
+## History
 
-| 時期 | 出来事 |
+| When | What happened |
 |---|---|
-| Flutter 3.32 | flutter/flutter#164034 で LayoutBuilder の内部を再設計。`rebuildIfNecessary()` → `runLayoutCallback()`、仕組みを `RenderObjectWithLayoutCallbackMixin` に切り出し |
-| 2025-05-21 | #108（edhom がマージ）で対応し 0.7.4 を公開。pubspec の下限は `>=3.0.0` のまま |
-| 2025-05-22 | issue #110: Flutter 3.29 で `Type 'RenderObjectWithLayoutCallbackMixin' not found`。報告は「新しい Flutter で削除された」としているが、実際は **3.32 で追加された** |
-| 2025-06 | #111 / #112: #110 のコメントにある回避策（2行削除）をそのまま PR 化。両者は同一差分 |
-| 2025-11 | #122: mixin を削除し `rebuildIfNecessary()` に戻す（ほぼ #108 の revert） |
+| Flutter 3.32 | flutter/flutter#164034 redesigns the internals of LayoutBuilder: `rebuildIfNecessary()` becomes `runLayoutCallback()`, and the mechanism moves into `RenderObjectWithLayoutCallbackMixin` |
+| 2025-05-21 | #108 (merged by edhom) adapts to it and 0.7.4 is published. The pubspec lower bound stays at `>=3.0.0` |
+| 2025-05-22 | Issue #110: `Type 'RenderObjectWithLayoutCallbackMixin' not found` on Flutter 3.29. The report says it was "removed in newer Flutter", but it was actually **added in 3.32** |
+| 2025-06 | #111 / #112: the workaround from a #110 comment (deleting two lines) turned into PRs as is. Both have the same diff |
+| 2025-11 | #122: removes the mixin and goes back to `rebuildIfNecessary()` (almost a revert of #108) |
 
-## 背景知識
+## Background
 
-- `LayoutBuilderPreserveBaseline`（`lib/src/render/layout/layout_builder_baseline.dart`）は
-  Flutter の `LayoutBuilder` のコピーに、子のベースラインを親へ伝える処理を足したもの。
-  `sqrt.dart`（√）、`stretchy_op.dart`（`\xrightarrow` など）、`left_right.dart` で使用。
-  例えば √ は、中身のサイズを制約として受け取ってから記号の SVG を作る。
-- `RenderObjectWithLayoutCallbackMixin`（Flutter `rendering/object.dart`）は「レイアウト中に
-  子 Widget を作り直す処理」を、祖先がレイアウトを省略しても確実に実行するための土台。
-  `RenderAbstractLayoutBuilderMixin`（= `RenderConstrainedLayoutBuilder`）は
-  `on RenderObjectWithChildMixin, RenderObjectWithLayoutCallbackMixin` と宣言しているので、
-  土台の mixin を外すとコンパイルできない。#111 の説明にある "unused mixin" は誤り。
+- `LayoutBuilderPreserveBaseline` (`lib/src/render/layout/layout_builder_baseline.dart`) is a copy
+  of Flutter's `LayoutBuilder` that also passes the child's baseline up to the parent.
+  It is used by `sqrt.dart` (√), `stretchy_op.dart` (`\xrightarrow` and friends) and `left_right.dart`.
+  For example, √ receives the size of its content as a constraint and then builds the SVG for the sign.
+- `RenderObjectWithLayoutCallbackMixin` (Flutter `rendering/object.dart`) is the base that makes sure
+  "rebuilding child widgets during layout" still runs even when an ancestor skips layout.
+  `RenderAbstractLayoutBuilderMixin` (= `RenderConstrainedLayoutBuilder`) is declared
+  `on RenderObjectWithChildMixin, RenderObjectWithLayoutCallbackMixin`, so removing the base mixin
+  breaks compilation. The "unused mixin" claim in #111's description is wrong.
 
-## 検証結果
+## Results
 
-Flutter 3.47.5（このラボのゴールデンテスト 32 件 + 描画テスト）:
+Flutter 3.47.5 (this lab's 32 golden tests + render tests):
 
-| 対象 | 結果 |
+| Target | Result |
 |---|---|
-| upstream main | ✅ 64/64 成功 |
-| #122 | ❌ コンパイルエラー（mixin が足りない／`rebuildIfNecessary` が未定義） |
-| #111（= #112） | ❌ コンパイルエラー（mixin が足りない） |
-| main + `flutter: '>=3.32.0'` | ✅ 64/64 成功 |
+| upstream main | ✅ 64/64 pass |
+| #122 | ❌ compile error (missing mixin / `rebuildIfNecessary` undefined) |
+| #111 (= #112) | ❌ compile error (missing mixin) |
+| main + `flutter: '>=3.32.0'` | ✅ 64/64 pass |
 
-Flutter 3.29.3（最小限のプロジェクト。ゴールデンは #122 で生成）:
+Flutter 3.29.3 (minimal project; goldens generated with #122):
 
-| 対象 | 結果 |
+| Target | Result |
 |---|---|
-| upstream main | ❌ #110 と同じエラーを再現 |
-| #122 | ✅ ビルド・描画とも OK（= 0.7.3 相当） |
-| #111（= #112） | ⚠️ ビルドは通るが、`runLayoutCallback()` ごと消したため builder が呼ばれず、√ と `\xrightarrow` が描かれない。記号の部品が画面全体（800×600）に広がる。32 件中 4 件が不一致 |
-| pub.dev の 0.7.3（固定） | ✅ 32/32 が #122 と一致 |
-| pub.dev から `^0.7.3` で解決 | ⚠️ 0.7.4 が選ばれる（0.7.4 自体が `>=3.0.0` と宣言しているため） |
-| main + `flutter: '>=3.32.0'`（通常の path 依存として） | ✅ `pub get` が「requires Flutter SDK version >=3.32.0」で止まる |
+| upstream main | ❌ reproduces the same error as #110 |
+| #122 | ✅ builds and renders (equivalent to 0.7.3) |
+| #111 (= #112) | ⚠️ builds, but since `runLayoutCallback()` was removed along with the mixin, the builder is never called and √ and `\xrightarrow` aren't drawn. Parts of the signs spread across the whole screen (800×600). 4 of 32 mismatch |
+| 0.7.3 from pub.dev (pinned) | ✅ all 32 match #122 |
+| resolved from pub.dev with `^0.7.3` | ⚠️ 0.7.4 is selected (because 0.7.4 itself declares `>=3.0.0`) |
+| main + `flutter: '>=3.32.0'` (as a regular path dependency) | ✅ `pub get` stops with "requires Flutter SDK version >=3.32.0" |
 
-## 補足
+## Notes
 
-- アプリ側の `flutter analyze` は依存パッケージの中身を検査しないので、壊れた PR を依存に指定しても
-  "No issues found" になる。エラーは `flutter test` やビルドの段階で初めて出る。
-  flutter_math リポジトリ自身で `flutter analyze lib` を実行すれば、#122 でも Flutter 3.47.5 で
-  error が 3 件出る（`non_abstract_class_inherits_abstract_member`、
-  `mixin_application_not_implemented_interface`、`undefined_method`）。
-- `dependency_overrides` で指定したパッケージには SDK 制約が適用されない。下限の効果を
-  確かめるときは通常の依存で指定する。
-- 下限を上げて 0.7.5 を公開しても、Flutter 3.29 のユーザーに pub が自動で 0.7.3 を選ぶ**わけではない**。
-  公開済みの 0.7.4 が `>=3.0.0` と宣言しているので、0.7.4 が選ばれる。pub.dev の retract は
-  公開から 7 日以内しか使えず、0.7.4（2025-05-21 公開）には使えない。そのため PR #133 では
-  CHANGELOG で「3.32 未満なら 0.7.3 に固定」と案内した（CodeRabbit の指摘で判明）。
-  0.7.3 は 3.29 で正常に描画できることを確認済み。
-- #112 と #122 は CLA 未署名（pending）、#111 は CLA の状態表示なし。
+- `flutter analyze` in an app doesn't check the contents of its dependencies, so it reports
+  "No issues found" even with a broken PR as a dependency. The errors only show up at `flutter test`
+  or build time. Running `flutter analyze lib` in the flutter_math repository itself reports
+  3 errors for #122 on Flutter 3.47.5 (`non_abstract_class_inherits_abstract_member`,
+  `mixin_application_not_implemented_interface`, `undefined_method`).
+- SDK constraints are not applied to packages specified in `dependency_overrides`. To check the
+  effect of the lower bound, specify the package as a regular dependency.
+- Raising the lower bound and publishing 0.7.5 does **not** make pub pick 0.7.3 automatically for
+  Flutter 3.29 users. The published 0.7.4 declares `>=3.0.0`, so 0.7.4 is selected. pub.dev's retract
+  only works within 7 days of publishing, so it can't be used for 0.7.4 (published 2025-05-21).
+  PR #133 therefore tells users in the CHANGELOG to pin 0.7.3 on Flutter below 3.32 (found through
+  CodeRabbit's review). 0.7.3 was confirmed to render correctly on 3.29.
+- #112 and #122 haven't signed the CLA (pending), and #111 shows no CLA status.
