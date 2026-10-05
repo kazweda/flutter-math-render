@@ -153,21 +153,26 @@ Widget _mathContextMenuBuilder(
       for (final ContextMenuButtonItem item
           in editableTextState.contextMenuButtonItems)
         item.type == ContextMenuButtonType.copy
-            ? item.copyWith(onPressed: () => _copyWithTex(editableTextState))
+            ? item.copyWith(
+                onPressed: () => _copyWithTex(
+                  editableTextState,
+                  SelectionChangedCause.toolbar,
+                ),
+              )
             : item,
     ],
   );
 }
 
-/// [EditableTextState.copySelection] for the toolbar, with inline formulas
-/// copied as TeX.
-void _copyWithTex(EditableTextState state) {
+/// [EditableTextState.copySelection] with inline formulas copied as TeX.
+void _copyWithTex(EditableTextState state, SelectionChangedCause cause) {
   final TextEditingValue value = state.textEditingValue;
   final InlineSpan? span = state.renderEditable.text;
   if (value.selection.isCollapsed || span == null) return;
   Clipboard.setData(
     ClipboardData(text: selectedTextWithTex(span, value.selection)),
   );
+  if (cause != SelectionChangedCause.toolbar) return;
   state.bringIntoView(value.selection.extent);
   state.hideToolbar(false);
   switch (defaultTargetPlatform) {
@@ -186,6 +191,46 @@ void _copyWithTex(EditableTextState state) {
         ),
         SelectionChangedCause.toolbar,
       );
+  }
+}
+
+/// Copy with the keyboard (⌘C / Ctrl+C) from selectable text.
+class _CopyWithTexIntent extends Intent {
+  const _CopyWithTexIntent();
+}
+
+/// The platform's copy shortcut, as in [DefaultTextEditingShortcuts].
+SingleActivator _copyActivator() {
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.iOS:
+    case TargetPlatform.macOS:
+      return const SingleActivator(LogicalKeyboardKey.keyC, meta: true);
+    case TargetPlatform.android:
+    case TargetPlatform.fuchsia:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
+      return const SingleActivator(LogicalKeyboardKey.keyC, control: true);
+  }
+}
+
+/// Copies the selection of the focused selectable text with [_copyWithTex].
+///
+/// Disabled when the focus is elsewhere (for example in a [SelectableMath]),
+/// so the key falls through to the default handling.
+class _CopyWithTexAction extends ContextAction<_CopyWithTexIntent> {
+  EditableTextState? _state(BuildContext? context) =>
+      context?.findAncestorStateOfType<EditableTextState>();
+
+  @override
+  bool isEnabled(_CopyWithTexIntent intent, [BuildContext? context]) {
+    final EditableTextState? state = _state(context);
+    return state != null && !state.textEditingValue.selection.isCollapsed;
+  }
+
+  @override
+  void invoke(_CopyWithTexIntent intent, [BuildContext? context]) {
+    final EditableTextState? state = _state(context);
+    if (state != null) _copyWithTex(state, SelectionChangedCause.keyboard);
   }
 }
 
@@ -297,6 +342,12 @@ class _MathSource extends StatelessWidget {
 }
 
 /// A [MarkdownBody] with `$...$` and `$$...$$` math support.
+///
+/// When [selectable], copying puts inline formulas on the clipboard as
+/// `$...$`, from the context menu and from the keyboard (⌘C / Ctrl+C). On web
+/// the context menu is the browser's unless the app calls
+/// [BrowserContextMenu.disableContextMenu]; the keyboard shortcut works either
+/// way, since it is handled here before the browser's own copy.
 class MarkdownMathBody extends StatelessWidget {
   const MarkdownMathBody({
     super.key,
@@ -311,7 +362,7 @@ class MarkdownMathBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MarkdownBody(
+    final Widget body = MarkdownBody(
       data: data,
       selectable: selectable,
       contextMenuBuilder: _mathContextMenuBuilder,
@@ -323,6 +374,18 @@ class MarkdownMathBody extends StatelessWidget {
         inlineMathTag: InlineMathBuilder(),
         blockMathTag: BlockMathBuilder(selectable: selectable),
       },
+    );
+    if (!selectable) return body;
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        _copyActivator(): const _CopyWithTexIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _CopyWithTexIntent: _CopyWithTexAction(),
+        },
+        child: body,
+      ),
     );
   }
 }

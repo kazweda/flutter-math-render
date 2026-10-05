@@ -297,6 +297,44 @@ An invalid formula \$\\frac{1}{\$
           TargetPlatform.iOS,
         }),
       );
+
+      Future<void> pressCopyShortcut(WidgetTester tester) async {
+        final LogicalKeyboardKey modifier = switch (defaultTargetPlatform) {
+          TargetPlatform.iOS ||
+          TargetPlatform.macOS => LogicalKeyboardKey.metaLeft,
+          _ => LogicalKeyboardKey.controlLeft,
+        };
+        await tester.sendKeyDownEvent(modifier);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+        await tester.sendKeyUpEvent(modifier);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('copies with the keyboard shortcut as TeX', (
+        WidgetTester tester,
+      ) async {
+        await pumpParagraph(tester, r'If $D > 0$, two roots; if $D = 0$, one');
+        // Focus the text, then select all of it.
+        await tester.tapAt(tester.getTopLeft(find.byType(EditableText)));
+        await tester.pumpAndSettle();
+        final EditableTextState state = tester.state(find.byType(EditableText));
+        state.selectAll(SelectionChangedCause.keyboard);
+        await tester.pumpAndSettle();
+        await pressCopyShortcut(tester);
+        expect(clipboard, r'If $D > 0$, two roots; if $D = 0$, one');
+        // The selection stays, as with the default keyboard copy.
+        expect(state.textEditingValue.selection.isCollapsed, isFalse);
+      }, variant: TargetPlatformVariant.all());
+
+      testWidgets('leaves the keyboard shortcut alone without a selection', (
+        WidgetTester tester,
+      ) async {
+        await pumpParagraph(tester, r'If $D > 0$, two roots');
+        await tester.tapAt(tester.getTopLeft(find.byType(EditableText)));
+        await tester.pumpAndSettle();
+        await pressCopyShortcut(tester);
+        expect(clipboard, isNull);
+      }, variant: TargetPlatformVariant.all());
     });
 
     testWidgets('Select All after a double tap on a phone with a notch', (
