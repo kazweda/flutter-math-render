@@ -2,6 +2,8 @@
 
 Verification lab for [flutter_math_fork](https://pub.dev/packages/flutter_math_fork) on the latest stable Flutter.
 
+**Web demo: https://kazweda.github.io/flutter-math-render/** — try the rendering and the SelectableMath fixes in a browser without building anything.
+
 - High-school math and chemistry formula set: `lib/formulas.dart`
 - Markdown integration (`$...$` inline, `$$...$$` block) on top of flutter_markdown_plus: `lib/markdown_math.dart`
   - When selectable, Copy puts inline formulas on the clipboard as `$...$` and a selected part of a block formula as TeX
@@ -28,6 +30,16 @@ Golden images (`test/goldens/`) are rendered with the real KaTeX fonts (loaded i
 ```bash
 flutter test --update-goldens test/golden_test.dart
 ```
+
+## Web demo
+
+`.github/workflows/pages.yml` builds the gallery app for the web on every push to `main` and deploys it to GitHub Pages. To try the web build locally:
+
+```bash
+flutter run -d chrome
+```
+
+On web, copying inline formulas from the selectable Markdown body doesn't work yet: with a mouse, the browser handles both ⌘C / Ctrl+C and the right-click Copy, so the clipboard gets U+FFFC (shown as a blank) instead of `$...$`. Selecting and copying block formulas works.
 
 ## Switching the flutter_math_fork source
 
