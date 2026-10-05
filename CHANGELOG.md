@@ -10,7 +10,7 @@ This is a verification app, not a published package (`publish_to: 'none'`). Vers
 - Web platform and a GitHub Pages deployment of the gallery app (`.github/workflows/pages.yml`) (#20).
 
 ### Fixed
-- Copying inline formulas with ⌘C / Ctrl+C put U+FFFC on the clipboard instead of `$...$`, and on web the right-click Copy did too. The keyboard shortcut now copies TeX, and the web app shows the Flutter context menu instead of the browser's (#21).
+- Copying inline formulas with ⌘C / Ctrl+C put U+FFFC on the clipboard instead of `$...$`, and on web the right-click Copy did too. The keyboard shortcut now copies TeX, and the web app shows the Flutter context menu instead of the browser's (#22).
 
 ## [0.3.0] - 2026-10-05
 
