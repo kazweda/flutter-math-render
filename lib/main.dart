@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 import 'formulas.dart';
@@ -6,6 +8,12 @@ import 'markdown_math.dart';
 import 'samples.dart';
 
 void main() {
+  if (kIsWeb) {
+    // Use the Flutter context menu, whose Copy writes inline formulas as TeX,
+    // instead of the browser's, which copies them as U+FFFC.
+    WidgetsFlutterBinding.ensureInitialized();
+    BrowserContextMenu.disableContextMenu();
+  }
   runApp(const MathRenderApp());
 }
 

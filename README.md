@@ -6,7 +6,7 @@ Verification lab for [flutter_math_fork](https://pub.dev/packages/flutter_math_f
 
 - High-school math and chemistry formula set: `lib/formulas.dart`
 - Markdown integration (`$...$` inline, `$$...$$` block) on top of flutter_markdown_plus: `lib/markdown_math.dart`
-  - When selectable, Copy puts inline formulas on the clipboard as `$...$` and a selected part of a block formula as TeX
+  - When selectable, Copy (from the context menu or ⌘C / Ctrl+C) puts inline formulas on the clipboard as `$...$` and a selected part of a block formula as TeX
 - Gallery app for visual checks on a device: `lib/main.dart`
   - Open a specific tab on launch: `flutter run --dart-define=TAB=0|1|2`
   - Start in Japanese: `flutter run --dart-define=LANG=ja`
@@ -39,7 +39,7 @@ flutter test --update-goldens test/golden_test.dart
 flutter run -d chrome
 ```
 
-On web, copying inline formulas from the selectable Markdown body doesn't work yet: with a mouse, the browser handles both ⌘C / Ctrl+C and the right-click Copy, so the clipboard gets U+FFFC (shown as a blank) instead of `$...$`. Selecting and copying block formulas works.
+On web, the browser's own copy would put U+FFFC (shown as a blank) on the clipboard for each inline formula. So the app disables the browser context menu (`BrowserContextMenu.disableContextMenu()` in `lib/main.dart`) to show the Flutter one on right-click, and `MarkdownMathBody` handles ⌘C / Ctrl+C itself; both copy inline formulas as `$...$`.
 
 ## Switching the flutter_math_fork source
 
