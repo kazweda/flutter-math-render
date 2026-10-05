@@ -34,3 +34,7 @@ dependency_overrides:
       url: https://github.com/simpleclub/flutter_math
       ref: <commit SHA>
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
