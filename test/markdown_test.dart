@@ -32,9 +32,11 @@ List<String> parseMath(String source) {
 void main() {
   group('inline math', () {
     test('simple', () {
+      expect(parseMath(r'the answer is $x^2$'), <String>['i:x^2']);
       expect(parseMath(r'解は $x^2$ です'), <String>['i:x^2']);
     });
     test('multiple in one line', () {
+      expect(parseMath(r'$a$ and $b$'), <String>['i:a', 'i:b']);
       expect(parseMath(r'$a$ と $b$'), <String>['i:a', 'i:b']);
     });
     test('currency is not math', () {
@@ -74,7 +76,23 @@ void main() {
   });
 
   group('widget', () {
-    const String sample = '''
+    // The same cases in English and Japanese.
+    const Map<String, String> samples = <String, String>{
+      'en': '''
+## Heading
+
+A paragraph with \$x^2\$ and a fraction \$\\frac{1}{2}\$ inline.
+
+\$\$
+\\int_0^1 x\\,dx
+\$\$
+
+- In a list \$\\sqrt{2}\$
+- Currency \$5 and \$10
+
+An invalid formula \$\\frac{1}{\$
+''',
+      'ja': '''
 ## 見出し
 
 文中の \$x^2\$ と分数 \$\\frac{1}{2}\$ を含む段落。
@@ -87,35 +105,42 @@ void main() {
 - 通貨 \$5 and \$10
 
 不正な式 \$\\frac{1}{\$
-''';
+''',
+    };
 
-    for (final bool selectable in <bool>[false, true]) {
-      testWidgets('renders without exceptions (selectable: $selectable)', (
-        WidgetTester tester,
-      ) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: MarkdownMathBody(data: sample, selectable: selectable),
+    for (final MapEntry<String, String> sample in samples.entries) {
+      for (final bool selectable in <bool>[false, true]) {
+        testWidgets('renders without exceptions '
+            '(${sample.key}, selectable: $selectable)', (
+          WidgetTester tester,
+        ) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: MarkdownMathBody(
+                    data: sample.value,
+                    selectable: selectable,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-        expect(tester.takeException(), isNull);
-        // 3 inline formulas, 1 invalid one shown as source, and the block
-        // formula when it is not selectable.
-        expect(find.byType(Math), findsNWidgets(selectable ? 4 : 5));
-        // The block formula is selectable only when the body is selectable.
-        expect(
-          find.byType(SelectableMath),
-          selectable ? findsOneWidget : findsNothing,
-        );
-        expect(
-          find.textContaining(r'$\frac{1}{$', findRichText: true),
-          findsOneWidget,
-        );
-      });
+          );
+          expect(tester.takeException(), isNull);
+          // 3 inline formulas, 1 invalid one shown as source, and the block
+          // formula when it is not selectable.
+          expect(find.byType(Math), findsNWidgets(selectable ? 4 : 5));
+          // The block formula is selectable only when the body is selectable.
+          expect(
+            find.byType(SelectableMath),
+            selectable ? findsOneWidget : findsNothing,
+          );
+          expect(
+            find.textContaining(r'$\frac{1}{$', findRichText: true),
+            findsOneWidget,
+          );
+        });
+      }
     }
 
     testWidgets('tapping a selectable block formula does not show the '

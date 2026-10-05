@@ -3,33 +3,11 @@ import 'package:flutter_math_fork/flutter_math.dart';
 
 import 'formulas.dart';
 import 'markdown_math.dart';
+import 'samples.dart';
 
 void main() {
   runApp(const MathRenderApp());
 }
-
-/// Sample text mixing Markdown and math, as a vocabulary note would.
-const String markdownSample = r'''
-## 二次方程式
-
-$ax^2 + bx + c = 0$ の解は次のとおり。
-
-$$
-x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}
-$$
-
-- 判別式 $D = b^2 - 4ac$ が $D > 0$ なら異なる2つの実数解
-- **重解**は $D = 0$ のとき
-
-文中の分数 $\frac{1}{2}$ や $\sqrt{\frac{a}{b}}$ 、総和 $\sum_{k=1}^{n} k$ を含む長い段落で、行の高さと前後の行との重なりを確認するための文章です。もう一行続けて折り返しを見る。
-
-化学では $\mathrm{H_2O}$ や $\mathrm{SO_4^{2-}}$ も書ける。
-
-通貨表記は数式にならない: $5 and $10、価格は $5-$10。
-エスケープ: \$x\$ はそのまま表示される。
-
-不正な式はソースのまま: $\frac{1}{$
-''';
 
 class MathRenderApp extends StatelessWidget {
   const MathRenderApp({super.key});
@@ -48,30 +26,56 @@ class MathRenderApp extends StatelessWidget {
   }
 }
 
-class GalleryScreen extends StatelessWidget {
+class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
 
   @override
+  State<GalleryScreen> createState() => _GalleryScreenState();
+}
+
+class _GalleryScreenState extends State<GalleryScreen> {
+  SampleLanguage _language = SampleLanguage.fromEnvironment();
+
+  @override
   Widget build(BuildContext context) {
+    final bool ja = _language == SampleLanguage.ja;
     return DefaultTabController(
       length: 3,
       initialIndex: const int.fromEnvironment('TAB'),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('flutter_math_fork lab'),
-          bottom: const TabBar(
+          actions: <Widget>[
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SegmentedButton<SampleLanguage>(
+                showSelectedIcon: false,
+                segments: <ButtonSegment<SampleLanguage>>[
+                  for (final SampleLanguage l in SampleLanguage.values)
+                    ButtonSegment<SampleLanguage>(
+                      value: l,
+                      label: Text(l.code),
+                    ),
+                ],
+                selected: <SampleLanguage>{_language},
+                onSelectionChanged: (Set<SampleLanguage> s) =>
+                    setState(() => _language = s.single),
+              ),
+            ),
+          ],
+          bottom: TabBar(
             tabs: <Widget>[
-              Tab(text: '数学'),
-              Tab(text: '化学'),
-              Tab(text: 'Markdown'),
+              Tab(text: ja ? '数学' : 'Math'),
+              Tab(text: ja ? '化学' : 'Chemistry'),
+              const Tab(text: 'Markdown'),
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: <Widget>[
-            FormulaList(formulas: mathFormulas),
-            FormulaList(formulas: chemistryFormulas),
-            MarkdownSampleView(),
+            FormulaList(formulas: mathFormulas, language: _language),
+            FormulaList(formulas: chemistryFormulas, language: _language),
+            MarkdownSampleView(data: markdownSamples[_language]!),
           ],
         ),
       ),
@@ -80,9 +84,14 @@ class GalleryScreen extends StatelessWidget {
 }
 
 class FormulaList extends StatelessWidget {
-  const FormulaList({super.key, required this.formulas});
+  const FormulaList({
+    super.key,
+    required this.formulas,
+    required this.language,
+  });
 
   final List<Formula> formulas;
+  final SampleLanguage language;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +105,7 @@ class FormulaList extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(f.label, style: theme.textTheme.labelLarge),
+            Text(f.label(language), style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -119,7 +128,9 @@ class FormulaList extends StatelessWidget {
 }
 
 class MarkdownSampleView extends StatefulWidget {
-  const MarkdownSampleView({super.key});
+  const MarkdownSampleView({super.key, required this.data});
+
+  final String data;
 
   @override
   State<MarkdownSampleView> createState() => _MarkdownSampleViewState();
@@ -139,7 +150,7 @@ class _MarkdownSampleViewState extends State<MarkdownSampleView> {
           onChanged: (bool v) => setState(() => _selectable = v),
         ),
         const Divider(),
-        MarkdownMathBody(data: markdownSample, selectable: _selectable),
+        MarkdownMathBody(data: widget.data, selectable: _selectable),
       ],
     );
   }
