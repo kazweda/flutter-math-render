@@ -4,6 +4,11 @@ All notable changes to this lab are documented here. The format is based on [Kee
 
 This is a verification app, not a published package (`publish_to: 'none'`). Versions mark points worth referring to, for example from upstream comments or the web demo. Pull request numbers refer to this repository unless noted.
 
+## [Unreleased]
+
+### Added
+- Web platform and a GitHub Pages deployment of the gallery app (`.github/workflows/pages.yml`).
+
 ## [0.3.0] - 2026-10-05
 
 ### Added
