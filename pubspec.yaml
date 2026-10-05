@@ -45,7 +45,7 @@ dependency_overrides:
   flutter_math_fork:
     git:
       url: https://github.com/kazweda/flutter_math.git
-      ref: 6ec49b723c097e1ea8110b1f3a1107717fb9755f
+      ref: f5385aa15a1ca66a4f3494dbffbe26abe3f4d2c5
 
 dev_dependencies:
   flutter_test:
