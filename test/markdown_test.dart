@@ -222,5 +222,81 @@ An invalid formula \$\\frac{1}{\$
         TargetPlatform.iOS,
       }),
     );
+    group('copying selectable text with inline math', () {
+      late String? clipboard;
+
+      Future<void> pumpParagraph(WidgetTester tester, String data) async {
+        clipboard = null;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (MethodCall call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboard =
+                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MarkdownMathBody(data: data, selectable: true),
+            ),
+          ),
+        );
+      }
+
+      Future<void> doubleTapAt(WidgetTester tester, Offset position) async {
+        await tester.tapAt(position);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tapAt(position);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets(
+        'copies a double-tapped formula as TeX',
+        (WidgetTester tester) async {
+          await pumpParagraph(tester, r'A **double root** when $D = 0$ holds');
+          await doubleTapAt(tester, tester.getCenter(find.byType(Math)));
+          await tester.tap(find.text('Copy'));
+          await tester.pumpAndSettle();
+          // Not U+FFFC, which SelectableText uses for the formula.
+          expect(clipboard, r'$D = 0$');
+        },
+        variant: const TargetPlatformVariant(<TargetPlatform>{
+          TargetPlatform.android,
+          TargetPlatform.iOS,
+        }),
+      );
+
+      testWidgets(
+        'copies a whole paragraph with its formulas as TeX',
+        (WidgetTester tester) async {
+          await pumpParagraph(
+            tester,
+            r'If $D > 0$, two roots; if $D = 0$, one',
+          );
+          final EditableTextState state = tester.state(
+            find.byType(EditableText),
+          );
+          state.selectAll(SelectionChangedCause.toolbar);
+          state.showToolbar();
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Copy'));
+          await tester.pumpAndSettle();
+          expect(clipboard, r'If $D > 0$, two roots; if $D = 0$, one');
+        },
+        variant: const TargetPlatformVariant(<TargetPlatform>{
+          TargetPlatform.android,
+          TargetPlatform.iOS,
+        }),
+      );
+    });
   });
 }

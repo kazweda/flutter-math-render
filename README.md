@@ -4,6 +4,7 @@ Verification lab for [flutter_math_fork](https://pub.dev/packages/flutter_math_f
 
 - High-school math and chemistry formula set: `lib/formulas.dart`
 - Markdown integration (`$...$` inline, `$$...$$` block) on top of flutter_markdown_plus: `lib/markdown_math.dart`
+  - When selectable, Copy puts inline formulas on the clipboard as `$...$` and a selected part of a block formula as TeX
 - Gallery app for visual checks on a device: `lib/main.dart`
   - Open a specific tab on launch: `flutter run --dart-define=TAB=0|1|2`
   - Start in Japanese: `flutter run --dart-define=LANG=ja`
