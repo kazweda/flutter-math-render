@@ -48,3 +48,4 @@ iPhone Air simulator (integration test: double-tap the block formula in the Mark
 
 - `flutter analyze` in the app reported no issues with #127 as a dependency; the compile error only showed up in `flutter test`. (Same as in [layout-callback-mixin.md](layout-callback-mixin.md).)
 - #127 is large (153 files, +1547/-553), conflicts with main, and its CLA is pending. The comment sticks to the verification results.
+- The #127 author's own package, [`flutter_math_katex`](https://github.com/mehedi8603651/flutter-math-packages) 0.1.1 (2026-08-22), has the same fix: `@override bool onFocusReceived() => false;` in `WebSelectionControlsManagerMixin`. #127 itself is still at `0553865` (2026-10-06) and doesn't compile on Flutter 3.47.5.
