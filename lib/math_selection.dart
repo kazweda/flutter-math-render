@@ -270,3 +270,49 @@ class _RenderMathSelectable extends RenderProxyBox
     super.dispose();
   }
 }
+
+/// Inside a [SelectionArea], copies the selected blocks of [child] (each
+/// paragraph, formula, and so on) joined by line breaks.
+///
+/// [SelectionArea] joins them with nothing in between, so two paragraphs
+/// copy as one line. Outside a [SelectionArea] this returns [child]
+/// unchanged.
+class LineBreakSelectionContainer extends StatefulWidget {
+  const LineBreakSelectionContainer({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<LineBreakSelectionContainer> createState() =>
+      _LineBreakSelectionContainerState();
+}
+
+class _LineBreakSelectionContainerState
+    extends State<LineBreakSelectionContainer> {
+  final _LineBreakSelectionDelegate _delegate = _LineBreakSelectionDelegate();
+
+  @override
+  void dispose() {
+    _delegate.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (SelectionContainer.maybeOf(context) == null) return widget.child;
+    return SelectionContainer(delegate: _delegate, child: widget.child);
+  }
+}
+
+class _LineBreakSelectionDelegate extends StaticSelectionContainerDelegate {
+  @override
+  SelectedContent? getSelectedContent() {
+    final List<String> parts = <String>[
+      for (final Selectable selectable in selectables)
+        if (selectable.getSelectedContent() case final SelectedContent data)
+          data.plainText,
+    ];
+    if (parts.isEmpty) return null;
+    return SelectedContent(plainText: parts.join('\n'));
+  }
+}

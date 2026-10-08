@@ -383,7 +383,7 @@ class MarkdownMathBody extends StatelessWidget {
         blockMathTag: BlockMathBuilder(selectable: selectable),
       },
     );
-    if (!selectable) return body;
+    if (!selectable) return LineBreakSelectionContainer(child: body);
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
         _copyActivator(): const _CopyWithTexIntent(),

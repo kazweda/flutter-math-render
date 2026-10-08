@@ -420,6 +420,8 @@ Second $b$ end.''';
           home: Scaffold(body: SelectionArea(child: child)),
         ),
       );
+      // Nested selection containers register with the area a frame later.
+      await tester.pump();
     }
 
     /// Copies with the same intent as the keyboard shortcut (⌘C / Ctrl+C).
@@ -448,8 +450,11 @@ Second $b$ end.''';
         kind: PointerDeviceKind.mouse,
       );
       await tester.pump();
-      await gesture.moveTo(to);
-      await tester.pump();
+      // In steps, like a real drag, so each block on the way sees it.
+      for (int i = 1; i <= 10; i++) {
+        await gesture.moveTo(Offset.lerp(from, to, i / 10)!);
+        await tester.pump();
+      }
       await gesture.up();
       await tester.pumpAndSettle();
     }
@@ -477,11 +482,9 @@ Second $b$ end.''';
       WidgetTester tester,
     ) async {
       await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
-      // SelectionArea joins paragraphs without a line break, with or
-      // without math.
       expect(
         await selectAllAndCopy(tester),
-        r'First $a^2$ end.$$x = \frac{1}{2}$$Second $b$ end.',
+        'First \$a^2\$ end.\n\$\$x = \\frac{1}{2}\$\$\nSecond \$b\$ end.',
       );
       expect(tester.takeException(), isNull);
     });
@@ -499,7 +502,7 @@ Second $b$ end.''';
       expect(await copy(tester), r'First $a^2$ end.');
     });
 
-    testWidgets('a drag gets past a block formula', (
+    testWidgets('a drag past a block formula copies each block on its line', (
       WidgetTester tester,
     ) async {
       await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
@@ -516,7 +519,7 @@ Second $b$ end.''';
       );
       expect(
         await copy(tester),
-        r'First $a^2$ end.$$x = \frac{1}{2}$$Second $b$ end.',
+        'First \$a^2\$ end.\n\$\$x = \\frac{1}{2}\$\$\nSecond \$b\$ end.',
       );
     });
 
