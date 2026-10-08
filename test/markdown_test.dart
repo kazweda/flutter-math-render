@@ -380,4 +380,85 @@ An invalid formula \$\\frac{1}{\$
       expect(find.text('Copy'), findsOneWidget);
     }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   });
+
+  // Records how Math behaves inside a SelectionArea (#23). Math doesn't
+  // implement Selectable, so the selection skips it.
+  group('inside SelectionArea', () {
+    const String data = r'''
+First $a^2$ end.
+
+$$
+x = \frac{1}{2}
+$$
+
+Second $b$ end.''';
+
+    Future<String?> selectAllAndCopy(WidgetTester tester, Widget child) async {
+      String? clipboard;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (MethodCall call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboard =
+                (call.arguments as Map<Object?, Object?>)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: SelectionArea(child: child)),
+        ),
+      );
+      final SelectableRegionState region = tester.state(
+        find.byType(SelectableRegion),
+      );
+      region.selectAll(SelectionChangedCause.keyboard);
+      await tester.pump();
+      // The same intent as the keyboard shortcut (⌘C / Ctrl+C).
+      Actions.invoke(
+        tester.element(find.byWidget(child)),
+        CopySelectionTextIntent.copy,
+      );
+      await tester.pumpAndSettle();
+      return clipboard;
+    }
+
+    testWidgets('copying drops inline and block formulas', (
+      WidgetTester tester,
+    ) async {
+      final String? copied = await selectAllAndCopy(
+        tester,
+        const MarkdownMathBody(data: data),
+      );
+      // Not U+FFFC: the formulas are left out entirely. SelectionArea also
+      // joins paragraphs without a line break, with or without math.
+      expect(copied, 'First  end.Second  end.');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a Text inside a WidgetSpan is copied, unlike Math', (
+      WidgetTester tester,
+    ) async {
+      final String? copied = await selectAllAndCopy(
+        tester,
+        const Text.rich(
+          TextSpan(
+            children: <InlineSpan>[
+              TextSpan(text: 'a '),
+              WidgetSpan(child: Text('W')),
+              TextSpan(text: ' b'),
+            ],
+          ),
+        ),
+      );
+      expect(copied, 'a W b');
+    });
+  });
 }

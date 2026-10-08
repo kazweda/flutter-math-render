@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_math_render/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,6 +22,24 @@ void main() {
     await tester.tap(find.text('EN'));
     await tester.pumpAndSettle();
     expect(find.text('Quadratic equations'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('switches the Markdown selection mode', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MathRenderApp());
+    await tester.tap(find.text('Markdown'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SelectionArea), findsNothing);
+
+    await tester.tap(find.text('SelectionArea'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SelectionArea), findsOneWidget);
+
+    await tester.tap(find.text('off'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SelectionArea), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

@@ -144,21 +144,50 @@ class MarkdownSampleView extends StatefulWidget {
   State<MarkdownSampleView> createState() => _MarkdownSampleViewState();
 }
 
+/// How the Markdown sample lets the user select text.
+enum MarkdownSelection {
+  /// Not selectable.
+  off('off'),
+
+  /// `MarkdownBody(selectable: true)`: one SelectableText per paragraph.
+  selectable('selectable'),
+
+  /// The whole body inside a SelectionArea, so a selection can span
+  /// paragraphs.
+  selectionArea('SelectionArea');
+
+  const MarkdownSelection(this.label);
+
+  final String label;
+}
+
 class _MarkdownSampleViewState extends State<MarkdownSampleView> {
-  bool _selectable = true;
+  MarkdownSelection _selection = MarkdownSelection.selectable;
 
   @override
   Widget build(BuildContext context) {
+    final Widget body = MarkdownMathBody(
+      data: widget.data,
+      selectable: _selection == MarkdownSelection.selectable,
+    );
     return ListView(
       padding: const EdgeInsets.all(16),
       children: <Widget>[
-        SwitchListTile(
-          title: const Text('selectable'),
-          value: _selectable,
-          onChanged: (bool v) => setState(() => _selectable = v),
+        SegmentedButton<MarkdownSelection>(
+          showSelectedIcon: false,
+          segments: <ButtonSegment<MarkdownSelection>>[
+            for (final MarkdownSelection s in MarkdownSelection.values)
+              ButtonSegment<MarkdownSelection>(value: s, label: Text(s.label)),
+          ],
+          selected: <MarkdownSelection>{_selection},
+          onSelectionChanged: (Set<MarkdownSelection> s) =>
+              setState(() => _selection = s.single),
         ),
         const Divider(),
-        MarkdownMathBody(data: widget.data, selectable: _selectable),
+        if (_selection == MarkdownSelection.selectionArea)
+          SelectionArea(child: body)
+        else
+          body,
       ],
     );
   }
