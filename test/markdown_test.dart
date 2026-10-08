@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_math_render/markdown_math.dart';
+import 'package:flutter_math_render/math_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as md;
 
@@ -501,15 +502,12 @@ Second $b$ end.''';
       expect(await copy(tester), r'First $a^2$ end.');
     });
 
-    testWidgets('a drag across paragraphs copies them on separate lines', (
+    testWidgets('a drag past a block formula copies each block on its line', (
       WidgetTester tester,
     ) async {
-      // No block formula in between: a mouse drag doesn't get past one yet
-      // (the horizontal scroll view around it stops it; see #23).
-      await pumpInSelectionArea(
-        tester,
-        const MarkdownMathBody(data: 'First \$a\$ end.\n\nSecond \$b\$ end.'),
-      );
+      await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
+      // The scroll view around the block formula passes Offset.infinite to
+      // it when the drag leaves it.
       final Rect first = tester.getRect(find.byType(RichText).first);
       final Rect last = tester.getRect(
         find.textContaining('Second', findRichText: true),
@@ -519,7 +517,20 @@ Second $b$ end.''';
         first.centerLeft,
         last.centerRight - const Offset(1, 0),
       );
-      expect(await copy(tester), 'First \$a\$ end.\nSecond \$b\$ end.');
+      expect(
+        await copy(tester),
+        'First \$a^2\$ end.\n\$\$x = \\frac{1}{2}\$\$\nSecond \$b\$ end.',
+      );
+    });
+
+    testWidgets('copies only the given text, not the child\'s own', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(
+        tester,
+        const MathSelectionAdapter(text: 'TeX', child: Text('child')),
+      );
+      expect(await selectAllAndCopy(tester), 'TeX');
     });
 
     testWidgets('a drag that stops before a formula leaves it out', (
