@@ -419,6 +419,8 @@ Second $b$ end.''';
           home: Scaffold(body: SelectionArea(child: child)),
         ),
       );
+      // Nested selection containers register with the area a frame later.
+      await tester.pump();
     }
 
     /// Copies with the same intent as the keyboard shortcut (⌘C / Ctrl+C).
@@ -447,8 +449,11 @@ Second $b$ end.''';
         kind: PointerDeviceKind.mouse,
       );
       await tester.pump();
-      await gesture.moveTo(to);
-      await tester.pump();
+      // In steps, like a real drag, so each block on the way sees it.
+      for (int i = 1; i <= 10; i++) {
+        await gesture.moveTo(Offset.lerp(from, to, i / 10)!);
+        await tester.pump();
+      }
       await gesture.up();
       await tester.pumpAndSettle();
     }
@@ -476,11 +481,9 @@ Second $b$ end.''';
       WidgetTester tester,
     ) async {
       await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
-      // SelectionArea joins paragraphs without a line break, with or
-      // without math.
       expect(
         await selectAllAndCopy(tester),
-        r'First $a^2$ end.$$x = \frac{1}{2}$$Second $b$ end.',
+        'First \$a^2\$ end.\n\$\$x = \\frac{1}{2}\$\$\nSecond \$b\$ end.',
       );
       expect(tester.takeException(), isNull);
     });
@@ -496,6 +499,27 @@ Second $b$ end.''';
         paragraph.centerRight - const Offset(1, 0),
       );
       expect(await copy(tester), r'First $a^2$ end.');
+    });
+
+    testWidgets('a drag across paragraphs copies them on separate lines', (
+      WidgetTester tester,
+    ) async {
+      // No block formula in between: a mouse drag doesn't get past one yet
+      // (the horizontal scroll view around it stops it; see #23).
+      await pumpInSelectionArea(
+        tester,
+        const MarkdownMathBody(data: 'First \$a\$ end.\n\nSecond \$b\$ end.'),
+      );
+      final Rect first = tester.getRect(find.byType(RichText).first);
+      final Rect last = tester.getRect(
+        find.textContaining('Second', findRichText: true),
+      );
+      await mouseDrag(
+        tester,
+        first.centerLeft,
+        last.centerRight - const Offset(1, 0),
+      );
+      expect(await copy(tester), 'First \$a\$ end.\nSecond \$b\$ end.');
     });
 
     testWidgets('a drag that stops before a formula leaves it out', (
