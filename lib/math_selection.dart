@@ -272,7 +272,8 @@ class _RenderMathSelectable extends RenderProxyBox
 }
 
 /// Inside a [SelectionArea], copies the selected blocks of [child] (each
-/// paragraph, formula, and so on) joined by line breaks.
+/// paragraph, formula, and so on) joined by line breaks, or by a space when
+/// they sit side by side on one line (a list item's marker and its text).
 ///
 /// [SelectionArea] joins them with nothing in between, so two paragraphs
 /// copy as one line. Outside a [SelectionArea] this returns [child]
@@ -307,12 +308,35 @@ class _LineBreakSelectionContainerState
 class _LineBreakSelectionDelegate extends StaticSelectionContainerDelegate {
   @override
   SelectedContent? getSelectedContent() {
-    final List<String> parts = <String>[
-      for (final Selectable selectable in selectables)
-        if (selectable.getSelectedContent() case final SelectedContent data)
-          data.plainText,
-    ];
-    if (parts.isEmpty) return null;
-    return SelectedContent(plainText: parts.join('\n'));
+    final StringBuffer buffer = StringBuffer();
+    Rect? previous;
+    for (final Selectable selectable in selectables) {
+      final SelectedContent? data = selectable.getSelectedContent();
+      if (data == null) continue;
+      final Rect rect = _globalBounds(selectable);
+      if (previous != null) {
+        buffer.write(_onSameLine(previous, rect) ? ' ' : '\n');
+      }
+      buffer.write(data.plainText);
+      previous = rect;
+    }
+    return buffer.isEmpty
+        ? null
+        : SelectedContent(plainText: buffer.toString());
   }
+
+  static Rect _globalBounds(Selectable selectable) {
+    final Rect local = selectable.boundingBoxes.fold(
+      Rect.zero,
+      (Rect all, Rect box) => all.isEmpty ? box : all.expandToInclude(box),
+    );
+    return MatrixUtils.transformRect(selectable.getTransformTo(null), local);
+  }
+
+  /// Whether [a] and [b] overlap vertically, like a list item's marker and
+  /// its text, which are separate widgets in a row.
+  static bool _onSameLine(Rect a, Rect b) =>
+      a.top < b.bottom - _tolerance && b.top < a.bottom - _tolerance;
+
+  static const double _tolerance = 0.5;
 }

@@ -523,6 +523,21 @@ Second $b$ end.''';
       );
     });
 
+    testWidgets('copies a list item\'s marker and text on one line', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(
+        tester,
+        const MarkdownMathBody(
+          data: 'Intro.\n\n- one \$x\$\n- two\n\n1. first\n2. second',
+        ),
+      );
+      expect(
+        await selectAllAndCopy(tester),
+        'Intro.\n• one \$x\$\n• two\n1. first\n2. second',
+      );
+    });
+
     testWidgets('copies only the given text, not the child\'s own', (
       WidgetTester tester,
     ) async {
