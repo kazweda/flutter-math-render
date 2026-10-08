@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_math_render/markdown_math.dart';
+import 'package:flutter_math_render/math_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as md;
 
@@ -496,6 +497,37 @@ Second $b$ end.''';
         paragraph.centerRight - const Offset(1, 0),
       );
       expect(await copy(tester), r'First $a^2$ end.');
+    });
+
+    testWidgets('a drag gets past a block formula', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
+      // The scroll view around the block formula passes Offset.infinite to
+      // it when the drag leaves it.
+      final Rect first = tester.getRect(find.byType(RichText).first);
+      final Rect last = tester.getRect(
+        find.textContaining('Second', findRichText: true),
+      );
+      await mouseDrag(
+        tester,
+        first.centerLeft,
+        last.centerRight - const Offset(1, 0),
+      );
+      expect(
+        await copy(tester),
+        r'First $a^2$ end.$$x = \frac{1}{2}$$Second $b$ end.',
+      );
+    });
+
+    testWidgets('copies only the given text, not the child\'s own', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(
+        tester,
+        const MathSelectionAdapter(text: 'TeX', child: Text('child')),
+      );
+      expect(await selectAllAndCopy(tester), 'TeX');
     });
 
     testWidgets('a drag that stops before a formula leaves it out', (

@@ -29,7 +29,13 @@ class MathSelectionAdapter extends StatelessWidget {
     if (registrar == null) return child;
     return MouseRegion(
       cursor: SystemMouseCursors.text,
-      child: _MathSelectable(registrar: registrar, text: text, child: child),
+      child: _MathSelectable(
+        registrar: registrar,
+        text: text,
+        // The formula is copied as [text] only, not also as whatever
+        // selectable content the child has.
+        child: SelectionContainer.disabled(child: child),
+      ),
     );
   }
 }
@@ -147,9 +153,13 @@ class _RenderMathSelectable extends RenderProxyBox
     switch (event.type) {
       case SelectionEventType.startEdgeUpdate:
       case SelectionEventType.endEdgeUpdate:
-        final Offset point = globalToLocal(
-          (event as SelectionEdgeUpdateEvent).globalPosition,
-        );
+        final Offset global =
+            (event as SelectionEdgeUpdateEvent).globalPosition;
+        // A scroll view sends Offset.infinite when a selection from outside
+        // passes through it, meaning "past the end of everything in it".
+        final Offset point = global.isFinite
+            ? globalToLocal(global)
+            : Offset.infinite;
         final Offset adjusted = SelectionUtils.adjustDragOffset(_bounds, point);
         if (event.type == SelectionEventType.startEdgeUpdate) {
           _start = adjusted;
