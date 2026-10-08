@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -381,8 +382,8 @@ An invalid formula \$\\frac{1}{\$
     }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   });
 
-  // Records how Math behaves inside a SelectionArea (#23). Math doesn't
-  // implement Selectable, so the selection skips it.
+  // Math inside a SelectionArea (#23). Math doesn't implement Selectable, so
+  // the selection skips it unless it is wrapped in MathSelectionAdapter.
   group('inside SelectionArea', () {
     const String data = r'''
 First $a^2$ end.
@@ -393,8 +394,10 @@ $$
 
 Second $b$ end.''';
 
-    Future<String?> selectAllAndCopy(WidgetTester tester, Widget child) async {
-      String? clipboard;
+    late String? clipboard;
+
+    Future<void> pumpInSelectionArea(WidgetTester tester, Widget child) async {
+      clipboard = null;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
         (MethodCall call) async {
@@ -416,49 +419,100 @@ Second $b$ end.''';
           home: Scaffold(body: SelectionArea(child: child)),
         ),
       );
-      final SelectableRegionState region = tester.state(
-        find.byType(SelectableRegion),
-      );
-      region.selectAll(SelectionChangedCause.keyboard);
-      await tester.pump();
-      // The same intent as the keyboard shortcut (⌘C / Ctrl+C).
+    }
+
+    /// Copies with the same intent as the keyboard shortcut (⌘C / Ctrl+C).
+    Future<String?> copy(WidgetTester tester) async {
+      // From inside the region, where its Actions are.
       Actions.invoke(
-        tester.element(find.byWidget(child)),
+        tester.element(find.byType(RichText).first),
         CopySelectionTextIntent.copy,
       );
       await tester.pumpAndSettle();
       return clipboard;
     }
 
-    testWidgets('copying drops inline and block formulas', (
-      WidgetTester tester,
-    ) async {
-      final String? copied = await selectAllAndCopy(
-        tester,
-        const MarkdownMathBody(data: data),
+    Future<String?> selectAllAndCopy(WidgetTester tester) async {
+      final SelectableRegionState region = tester.state(
+        find.byType(SelectableRegion),
       );
-      // Not U+FFFC: the formulas are left out entirely. SelectionArea also
-      // joins paragraphs without a line break, with or without math.
-      expect(copied, 'First  end.Second  end.');
-      expect(tester.takeException(), isNull);
-    });
+      region.selectAll(SelectionChangedCause.keyboard);
+      await tester.pump();
+      return copy(tester);
+    }
 
-    testWidgets('a Text inside a WidgetSpan is copied, unlike Math', (
+    Future<void> mouseDrag(WidgetTester tester, Offset from, Offset to) async {
+      final TestGesture gesture = await tester.startGesture(
+        from,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      await gesture.moveTo(to);
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a bare Math is left out of the copy', (
       WidgetTester tester,
     ) async {
-      final String? copied = await selectAllAndCopy(
+      await pumpInSelectionArea(
         tester,
-        const Text.rich(
+        Text.rich(
           TextSpan(
             children: <InlineSpan>[
-              TextSpan(text: 'a '),
-              WidgetSpan(child: Text('W')),
-              TextSpan(text: ' b'),
+              const TextSpan(text: 'a '),
+              WidgetSpan(child: Math.tex('x')),
+              const TextSpan(text: ' b'),
             ],
           ),
         ),
       );
-      expect(copied, 'a W b');
+      // Not even U+FFFC. A plain Text in the WidgetSpan would be copied.
+      expect(await selectAllAndCopy(tester), 'a  b');
+    });
+
+    testWidgets('Select all copies inline and block formulas as TeX', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
+      // SelectionArea joins paragraphs without a line break, with or
+      // without math.
+      expect(
+        await selectAllAndCopy(tester),
+        r'First $a^2$ end.$$x = \frac{1}{2}$$Second $b$ end.',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('dragging across an inline formula copies it as TeX', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
+      final Rect paragraph = tester.getRect(find.byType(RichText).first);
+      await mouseDrag(
+        tester,
+        paragraph.centerLeft,
+        paragraph.centerRight - const Offset(1, 0),
+      );
+      expect(await copy(tester), r'First $a^2$ end.');
+    });
+
+    testWidgets('a drag that stops before a formula leaves it out', (
+      WidgetTester tester,
+    ) async {
+      await pumpInSelectionArea(tester, const MarkdownMathBody(data: data));
+      final Rect paragraph = tester.getRect(find.byType(RichText).first);
+      final double formulaLeft = tester.getTopLeft(find.byType(Math).first).dx;
+      await mouseDrag(
+        tester,
+        paragraph.centerLeft,
+        Offset(formulaLeft - 4, paragraph.center.dy),
+      );
+      expect(
+        await copy(tester),
+        allOf(startsWith('First'), isNot(contains(r'$'))),
+      );
     });
   });
 }

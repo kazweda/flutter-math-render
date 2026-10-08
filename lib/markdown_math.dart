@@ -6,6 +6,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import 'math_selection.dart';
+
 /// Markdown element tag for inline math (`$...$`).
 const String inlineMathTag = 'math_inline';
 
@@ -104,12 +106,15 @@ class _InlineMath extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Math.tex(
-      tex,
-      mathStyle: MathStyle.text,
-      textStyle: style,
-      onErrorFallback: (FlutterMathException e) =>
-          _MathSource('\$$tex\$', style: style),
+    return MathSelectionAdapter(
+      text: '\$$tex\$',
+      child: Math.tex(
+        tex,
+        mathStyle: MathStyle.text,
+        textStyle: style,
+        onErrorFallback: (FlutterMathException e) =>
+            _MathSource('\$$tex\$', style: style),
+      ),
     );
   }
 }
@@ -258,12 +263,15 @@ class BlockMathBuilder extends MarkdownElementBuilder {
         scrollDirection: Axis.horizontal,
         child: selectable
             ? _SelectableBlockMath(tex: tex, style: parentStyle)
-            : Math.tex(
-                tex,
-                mathStyle: MathStyle.display,
-                textStyle: parentStyle,
-                onErrorFallback: (FlutterMathException e) =>
-                    _MathSource('\$\$$tex\$\$', style: parentStyle),
+            : MathSelectionAdapter(
+                text: '\$\$$tex\$\$',
+                child: Math.tex(
+                  tex,
+                  mathStyle: MathStyle.display,
+                  textStyle: parentStyle,
+                  onErrorFallback: (FlutterMathException e) =>
+                      _MathSource('\$\$$tex\$\$', style: parentStyle),
+                ),
               ),
       ),
     );
