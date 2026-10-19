@@ -81,10 +81,11 @@ packages:
   flutter_markdown_plus:
     dependency: "direct main"
     description:
-      name: flutter_markdown_plus
-      sha256: fce641d6c2106cc495de1cd603f97a4f9d615a97a64011928ded380dbdade935
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "6fcde7c8e47de17dc31d110afb2d6261b0a1c7a3"
+      resolved-ref: "6fcde7c8e47de17dc31d110afb2d6261b0a1c7a3"
+      url: "https://github.com/kazweda/flutter_markdown_plus.git"
+    source: git
     version: "1.0.12"
   flutter_math_fork:
     dependency: "direct main"
