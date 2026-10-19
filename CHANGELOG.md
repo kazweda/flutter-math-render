@@ -4,6 +4,11 @@ All notable changes to this lab are documented here. The format is based on [Kee
 
 This is a verification app, not a published package (`publish_to: 'none'`). Versions mark points worth referring to, for example from upstream comments or the web demo. Pull request numbers refer to this repository unless noted.
 
+## [Unreleased]
+
+### Fixed
+- A tall inline formula (`$...$`) overflowed its line and overlapped the blocks above and below, because flutter_markdown_plus 1.0.8+ forces a fixed line height on every text block. Uses kazweda/flutter_markdown_plus@6fcde7c, which doesn't force it in a block with a `WidgetSpan`. See `docs/inline-math-line-height.md` (#37).
+
 ## [0.4.0] - 2026-10-05
 
 ### Added
