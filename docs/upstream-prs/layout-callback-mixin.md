@@ -69,3 +69,4 @@ Flutter 3.29.3 (minimal project; goldens generated with #122):
   PR #133 therefore tells users in the CHANGELOG to pin 0.7.3 on Flutter below 3.32 (found through
   CodeRabbit's review). 0.7.3 was confirmed to render correctly on 3.29.
 - #112 and #122 haven't signed the CLA (pending), and #111 shows no CLA status.
+- These results were posted on #111 ([comment](https://github.com/simpleclub/flutter_math/pull/111#issuecomment-5977680972), 2026-10-04). The #111 author replied that raising the minimum Flutter version is the right solution ([comment](https://github.com/simpleclub/flutter_math/pull/111#issuecomment-6476109748), 2026-10-28).
