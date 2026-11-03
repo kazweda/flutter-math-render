@@ -8,6 +8,7 @@ Verification lab for [flutter_math_fork](https://pub.dev/packages/flutter_math_f
 - Markdown integration (`$...$` inline, `$$...$$` block) on top of flutter_markdown_plus: `lib/markdown_math.dart`
   - When selectable, Copy (from the context menu or ⌘C / Ctrl+C) puts inline formulas on the clipboard as `$...$` and a selected part of a block formula as TeX
   - Inside a `SelectionArea`, a selection can span paragraphs and copies formulas as TeX, one block per line: `lib/math_selection.dart`, see [docs/selection-area.md](docs/selection-area.md)
+  - A tall inline formula makes its line taller, with a fork of flutter_markdown_plus: see [docs/inline-math-line-height.md](docs/inline-math-line-height.md)
 - Gallery app for visual checks on a device: `lib/main.dart`
   - Open a specific tab on launch: `flutter run --dart-define=TAB=0|1|2`
   - Start in Japanese: `flutter run --dart-define=LANG=ja`

@@ -46,6 +46,12 @@ dependency_overrides:
     git:
       url: https://github.com/kazweda/flutter_math.git
       ref: f5385aa15a1ca66a4f3494dbffbe26abe3f4d2c5
+  # flutter_markdown_plus 1.0.12 that lets a tall inline formula make its
+  # line taller (no forced strut in a block with a WidgetSpan) (#36).
+  flutter_markdown_plus:
+    git:
+      url: https://github.com/kazweda/flutter_markdown_plus.git
+      ref: 6fcde7c8e47de17dc31d110afb2d6261b0a1c7a3
 
 dev_dependencies:
   flutter_test:
